@@ -1,0 +1,22 @@
+{
+  "name": "add-cloud-components-cli",
+  "version": "1.0.0",
+  "description": "A cli tool for auto add cloud-components & add git commit",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "cloud-components-cli": "bin/cloud-components-cli"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^4.1.1",
+    "commander": "^8.0.0",
+    "inquirer": "^8.1.1",
+    "ora": "^5.4.1",
+    "shelljs": "^0.8.4"
+  }
+}

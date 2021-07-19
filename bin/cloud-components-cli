@@ -1,0 +1,126 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+const inquirer = require('inquirer');
+const shell = require('shelljs');
+const chalk = require('chalk');
+const fs = require('fs');
+const path = require('path');
+
+const ALL_NEED_INSTALL_DIRS_DEFAULT = [
+  'cloud-vpc-dashboard',
+  'cloud-dedicated-dashboard',
+  'cloud-dns-dashboard',
+  'cloud-iam-dashboard',
+  'cloud-management-dashboard',
+  'cloud-resource-dashboard',
+  'cloud-trail-dashboard',
+  'customer-portal',
+];
+
+const YARN_ADD = 'yarn add cloud-components -S --registry=http://172.20.150.222:4873/';
+
+function generateGitShell(version, issueId) {
+  return `git add . && git commit -m "feat(*): upgrate cloud-components to ${version}" -m "Issue: ${issueId}"`;
+}
+
+function generateGitCommit(message, issueId) {
+  return `git add . && git commit -m "${message}" -m "Issue: ${issueId}"`;
+}
+
+program
+  .version(require('./../package.json').version)
+  .option('-a, --all', '在当前目录下找寻customer-portal, cloud-components-vpc安装')
+
+const { all } = program.opts();
+
+program
+  .command('install')
+  .description('clone a repository into a newly created directory')
+  .action((name, other) => {
+    inquirer.prompt([
+      {
+        name: "version",
+        type: 'input',
+        message: "请输入cloud-components的版本号",
+        validate (val) {
+          if (!val) {
+            return 'version is required!'
+          } 
+          return true
+        }
+      },
+      {
+        name: "issueId",
+        type: 'input',
+        message: "请输入issueId",
+        validate (val) {
+          if (!val) {
+            return 'issueId is required!'
+          } 
+          return true
+        }
+      }
+    ]).then(answers => {
+      console.log(chalk.green(answers));
+      const { version, issueId } = answers;
+      if (all) {
+        shell.ls().forEach(dir => {
+          console.log(dir);
+          if (ALL_NEED_INSTALL_DIRS_DEFAULT.includes(dir)) {
+            shell.cd(dir);
+            shell.exec(YARN_ADD);
+            shell.exec(generateGitShell(version, issueId));
+            shell.cd('..');
+          }
+        });
+      } else {
+        // 判断当前是否有package.json文件
+        fs.access(path.resolve(process.cwd(), 'package.json'), fs.constants.F_OK, (err) => {
+          if (err) {
+            return process.exit(1);
+          }
+          shell.exec(YARN_ADD);
+          shell.exec(generateGitShell(version, issueId));
+        });
+      }
+    })
+    
+  });
+
+program
+  .command('review')
+  .description('一键review代码')
+  .action(() => {
+    inquirer.prompt([
+      {
+        name: "message",
+        type: 'input',
+        message: "请输入commit信息",
+        validate (val) {
+          if (!val) {
+            return 'commit信息必填'
+          } 
+          return true
+        }
+      },
+      {
+        name: "issueId",
+        type: 'input',
+        message: "请输入issueId",
+        validate (val) {
+          if (!val) {
+            return 'issueId is required!'
+          } 
+          return true
+        }
+      }
+    ]).then((answers) => {
+      const { message, issueId } = answers;
+      shell.exec(generateGitCommit(message, issueId));
+      shell.exec('git pull -r');
+      shell.exec('git review');
+    })
+  })
+// 解析命令行参数
+program.parse(process.argv);
